@@ -1,17 +1,22 @@
 # 🧩 Sudoku — Formação Java (DIO)
 
+[![Jogue Online](https://img.shields.io/badge/🚀_Jogue_Online-verde?style=for-the-badge&logo=githubpages)](https://everferreira.github.io/sudoku-dio)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/everferreira/sudoku-dio)
 [![CI — Build & Test](https://github.com/everferreira/sudoku-dio/actions/workflows/ci.yml/badge.svg)](https://github.com/everferreira/sudoku-dio/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-17%2B-%23ED8B00?logo=openjdk&logoColor=white)
 
 Jogo de Sudoku 9x9 com validação real de **linhas, colunas e quadrantes 3x3**.
-Duas versões: terminal interativo e interface gráfica (Swing).
+Três versões: web (navegador), terminal interativo e interface gráfica (Swing).
 
 ---
 
 ## 🎮 Como jogar
 
-### Opção 1 — Terminal (CLI)
+### 🌐 Online (recomendado) — [Clique aqui para jogar agora](https://everferreira.github.io/sudoku-dio)
+
+Sem instalação, funciona no celular e no PC.
+
+### 💻 Terminal (CLI)
 
 ```bash
 git clone https://github.com/everferreira/sudoku-dio.git
@@ -28,24 +33,21 @@ Menu interativo com 8 opções:
 4 - Visualizar jogo      8 - Sair
 ```
 
-### Opção 2 — Interface gráfica (Swing)
-
-Se tiver ambiente gráfico, use:
+### 🖥️ Interface gráfica (Swing)
 
 ```bash
 ./scripts/run-ui.sh
 ```
 
-### Opção 3 — GitHub Codespaces (navegador)
+### ☁️ GitHub Codespaces
 
-[Clique aqui](https://codespaces.new/everferreira/sudoku-dio) para abrir no seu navegador.
-Depois execute no terminal integrado:
+Abra [neste link](https://codespaces.new/everferreira/sudoku-dio) e execute no terminal:
 
 ```bash
 ./scripts/run-cli.sh
 ```
 
-### Opção 4 — Maven direto
+### ⚙️ Maven direto
 
 ```bash
 mvn compile                    # compilar
@@ -60,20 +62,21 @@ mvn test                       # rodar testes
 
 ```
 sudoku/
-├── pom.xml                        # Build Maven
+├── index.html                      # Jogo web (GitHub Pages)
+├── pom.xml                         # Build Maven
 ├── src/
 │   ├── main/java/br/com/dio/
-│   │   ├── Main.java              # Terminal (CLI)
-│   │   ├── UIMain.java            # Interface gráfica (Swing)
-│   │   ├── model/                 # Board, Space, GameStatusEnum
-│   │   ├── service/               # BoardService + eventos
-│   │   ├── ui/                    # Componentes Swing
-│   │   └── util/                  # BoardConfig, BoardTemplate
+│   │   ├── Main.java               # Terminal (CLI)
+│   │   ├── UIMain.java             # Interface gráfica (Swing)
+│   │   ├── model/                  # Board, Space, GameStatusEnum
+│   │   ├── service/                # BoardService + eventos
+│   │   ├── ui/                     # Componentes Swing
+│   │   └── util/                   # BoardConfig, BoardTemplate
 │   └── test/java/br/com/dio/
-│       └── model/BoardTest.java   # 23 testes JUnit 5
+│       └── model/BoardTest.java    # 23 testes JUnit 5
 ├── .devcontainer/devcontainer.json
 ├── .github/workflows/ci.yml
-└── scripts/                       # run-cli.sh, run-ui.sh, board-data.txt
+└── scripts/                        # run-cli.sh, run-ui.sh, board-data.txt
 ```
 
 ## 🧪 Testes
@@ -100,12 +103,13 @@ O tabuleiro da DIO (33 células fixas) está em [`scripts/board-data.txt`](scrip
 
 ## 🛠 Tecnologias
 
+- **JavaScript (vanilla)** — jogo web responsivo
 - **Java 17+** (text blocks, switch expressions, streams)
 - **Maven** (build + dependências)
 - **JUnit 5** (testes)
 - **Swing** (interface gráfica)
 - **Observer** (eventos via `NotifierService`)
-- **GitHub Codespaces / Actions**
+- **GitHub Codespaces / Actions / Pages**
 - Zero dependências externas em runtime
 
 ---

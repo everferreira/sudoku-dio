@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sudoku — DIO</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; padding: 16px;
+  }
+  .container { max-width: 520px; width: 100%; }
+
+  h1 {
+    text-align: center; font-size: 1.5rem; font-weight: 700;
+    margin-bottom: 4px; color: #f8fafc;
+  }
+  .subtitle {
+    text-align: center; font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: #1e293b; border-radius: 8px; margin-bottom: 12px;
+    font-size: 0.85rem;
+  }
+  .status-bar .status { font-weight: 600; }
+  .status-bar .status.non-started { color: #94a3b8; }
+  .status-bar .status.incomplete { color: #facc15; }
+  .status-bar .status.complete { color: #22c55e; }
+  .errors-badge {
+    background: #ef4444; color: #fff; padding: 2px 10px;
+    border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+    display: none;
+  }
+  .errors-badge.show { display: inline-block; }
+
+  /* Board */
+  .board {
+    display: grid; grid-template-columns: repeat(9, 1fr);
+    gap: 1px; background: #334155; border: 2px solid #475569; border-radius: 6px;
+    overflow: hidden; user-select: none;
+  }
+  .cell {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 500;
+    background: #1e293b; cursor: pointer; transition: background 0.1s;
+    position: relative;
+  }
+  .cell:hover { background: #2d3a4f; }
+  .cell.fixed {
+    font-weight: 700; color: #f8fafc; cursor: default;
+  }
+  .cell.fixed:hover { background: #1e293b; }
+  .cell.selected { background: #1d4ed8 !important; color: #fff !important; }
+  .cell.error { background: #7f1d1d !important; color: #fca5a5 !important; }
+  .cell.highlighted { background: #1e3a5f; }
+  .cell.highlighted.selected { background: #1d4ed8 !important; }
+
+  /* Region borders */
+  .cell:nth-child(3n) { border-right: 2px solid #475569; }
+  .cell:nth-child(9n) { border-right: none; }
+  .cell:nth-child(n+19):nth-child(-n+27) { border-bottom: 2px solid #475569; }
+  .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #475569; }
+  .cell:nth-child(n+73):nth-child(-n+81) { border-bottom: none; }
+
+  /* Number pad */
+  .num-pad {
+    display: flex; gap: 6px; justify-content: center; margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .num-pad button {
+    width: 44px; height: 44px; border: none; border-radius: 8px;
+    font-size: 1.1rem; font-weight: 600; cursor: pointer;
+    transition: transform 0.1s, background 0.1s;
+    background: #1e293b; color: #e2e8f0;
+  }
+  .num-pad button:hover { background: #334155; transform: scale(1.05); }
+  .num-pad button:active { transform: scale(0.95); }
+  .num-pad button.delete {
+    background: #450a0a; color: #fca5a5; width: 52px;
+  }
+  .num-pad button.delete:hover { background: #7f1d1d; }
+
+  /* Controls */
+  .controls {
+    display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center;
+  }
+  .controls button {
+    padding: 8px 16px; border: none; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    transition: transform 0.1s, background 0.1s;
+    background: #1e293b; color: #e2e8f0; flex: 1; min-width: 90px;
+  }
+  .controls button:hover { background: #334155; transform: scale(1.02); }
+  .controls button.primary { background: #1d4ed8; }
+  .controls button.primary:hover { background: #2563eb; }
+  .controls button.success { background: #15803d; }
+  .controls button.success:hover { background: #16a34a; }
+  .controls button.danger { background: #b91c1c; }
+  .controls button.danger:hover { background: #dc2626; }
+  .controls button.warning { background: #a16207; }
+  .controls button.warning:hover { background: #ca8a04; }
+
+  /* Message */
+  .message {
+    margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+    font-size: 0.85rem; line-height: 1.5; display: none;
+  }
+  .message.show { display: block; }
+  .message.error { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+  .message.success { background: #052e16; color: #bbf7d0; border: 1px solid #15803d; }
+  .message.info { background: #172554; color: #bfdbfe; border: 1px solid #1d4ed8; }
+
+  @media (max-width: 440px) {
+    .cell { font-size: 1rem; }
+    .num-pad button { width: 36px; height: 36px; font-size: 0.95rem; }
+    .num-pad button.delete { width: 44px; }
+    .controls button { font-size: 0.72rem; padding: 6px 8px; min-width: 70px; }
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center; margin-top: 20px; font-size: 0.75rem; color: #64748b;
+  }
+  .footer a { color: #60a5fa; text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🧩 Sudoku</h1>
+  <p class="subtitle">Formação Java · DIO</p>
+
+  <div class="status-bar">
+    <span>Status: <span class="status non-started" id="statusText">não iniciado</span></span>
+    <span class="errors-badge" id="errorsBadge">0 erros</span>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="num-pad" id="numPad">
+    <button data-n="1">1</button>
+    <button data-n="2">2</button>
+    <button data-n="3">3</button>
+    <button data-n="4">4</button>
+    <button data-n="5">5</button>
+    <button data-n="6">6</button>
+    <button data-n="7">7</button>
+    <button data-n="8">8</button>
+    <button data-n="9">9</button>
+    <button class="delete" data-n="0">✕</button>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="btnCheck">🔍 Verificar</button>
+    <button class="success" id="btnFinish">✅ Finalizar</button>
+    <button class="warning" id="btnReset">⟲ Limpar</button>
+    <button class="danger" id="btnNew">🔄 Novo</button>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div class="footer">
+    <a href="https://github.com/everferreira/sudoku-dio" target="_blank">github.com/everferreira/sudoku-dio</a>
+  </div>
+</div>
+
+<script>
+// ===================== TABULEIRO PADRÃO (DIO — 33 células fixas) =====================
+// Formato: board[row][col]
+const DEFAULT_PUZZLE = {
+  "0,0": { v: 4, f: false }, "1,0": { v: 7, f: false }, "2,0": { v: 9, f: true  }, "3,0": { v: 5, f: false }, "4,0": { v: 8, f: true  }, "5,0": { v: 6, f: true  }, "6,0": { v: 2, f: true  }, "7,0": { v: 3, f: false }, "8,0": { v: 1, f: false },
+  "0,1": { v: 1, f: false }, "1,1": { v: 3, f: true  }, "2,1": { v: 5, f: false }, "3,1": { v: 4, f: false }, "4,1": { v: 7, f: true  }, "5,1": { v: 2, f: false }, "6,1": { v: 8, f: false }, "7,1": { v: 9, f: true  }, "8,1": { v: 6, f: true  },
+  "0,2": { v: 2, f: false }, "1,2": { v: 6, f: true  }, "2,2": { v: 8, f: false }, "3,2": { v: 9, f: false }, "4,2": { v: 1, f: true  }, "5,2": { v: 3, f: false }, "6,2": { v: 7, f: false }, "7,2": { v: 4, f: false }, "8,2": { v: 5, f: true  },
+  "0,3": { v: 5, f: true  }, "1,3": { v: 1, f: false }, "2,3": { v: 3, f: true  }, "3,3": { v: 7, f: false }, "4,3": { v: 6, f: false }, "5,3": { v: 4, f: false }, "6,3": { v: 9, f: false }, "7,3": { v: 8, f: true  }, "8,3": { v: 2, f: false },
+  "0,4": { v: 8, f: false }, "1,4": { v: 9, f: true  }, "2,4": { v: 7, f: false }, "3,4": { v: 1, f: true  }, "4,4": { v: 2, f: true  }, "5,4": { v: 5, f: true  }, "6,4": { v: 3, f: false }, "7,4": { v: 6, f: true  }, "8,4": { v: 4, f: false },
+  "0,5": { v: 6, f: false }, "1,5": { v: 4, f: true  }, "2,5": { v: 2, f: false }, "3,5": { v: 3, f: false }, "4,5": { v: 9, f: false }, "5,5": { v: 8, f: false }, "6,5": { v: 1, f: true  }, "7,5": { v: 5, f: false }, "8,5": { v: 7, f: true  },
+  "0,6": { v: 7, f: true  }, "1,6": { v: 5, f: false }, "2,6": { v: 4, f: false }, "3,6": { v: 2, f: false }, "4,6": { v: 3, f: true  }, "5,6": { v: 9, f: false }, "6,6": { v: 6, f: false }, "7,6": { v: 1, f: true  }, "8,6": { v: 8, f: false },
+  "0,7": { v: 9, f: true  }, "1,7": { v: 8, f: true  }, "2,7": { v: 1, f: false }, "3,7": { v: 6, f: false }, "4,7": { v: 4, f: true  }, "5,7": { v: 7, f: false }, "6,7": { v: 5, f: false }, "7,7": { v: 2, f: true  }, "8,7": { v: 3, f: false },
+  "0,8": { v: 3, f: false }, "1,8": { v: 2, f: false }, "2,8": { v: 6, f: true  }, "3,8": { v: 8, f: true  }, "4,8": { v: 5, f: true  }, "5,8": { v: 1, f: false }, "6,8": { v: 4, f: true  }, "7,8": { v: 7, f: false }, "8,8": { v: 9, f: false },
+};
+
+// ===================== ESTADO DO JOGO =====================
+let board = [];       // 9x9: board[row][col] = { value, fixed }
+let selectedRow = -1;
+let selectedCol = -1;
+
+const BOARD_SIZE = 9;
+const REGION_SIZE = 3;
+
+// ===================== DOM REFS =====================
+const boardEl = document.getElementById('board');
+const statusText = document.getElementById('statusText');
+const errorsBadge = document.getElementById('errorsBadge');
+const messageEl = document.getElementById('message');
+
+// ===================== INICIALIZAÇÃO =====================
+function initBoard() {
+  board = [];
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    board[row] = [];
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const key = col + ',' + row;
+      const cell = DEFAULT_PUZZLE[key];
+      board[row][col] = { value: cell.v, fixed: cell.f };
+    }
+  }
+}
+
+function renderBoard() {
+  boardEl.innerHTML = '';
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (board[row][col].fixed) cell.classList.add('fixed');
+      if (row === selectedRow && col === selectedCol) cell.classList.add('selected');
+      cell.dataset.row = row;
+      cell.dataset.col = col;
+      cell.textContent = board[row][col].value || '';
+      cell.addEventListener('click', () => selectCell(row, col));
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+function updateCellDOM(row, col) {
+  const idx = row * BOARD_SIZE + col;
+  const cell = boardEl.children[idx];
+  if (!cell) return;
+  cell.textContent = board[row][col].value || '';
+  cell.classList.toggle('fixed', board[row][col].fixed);
+  cell.classList.toggle('selected', row === selectedRow && col === selectedCol);
+}
+
+// ===================== SELEÇÃO =====================
+function selectCell(row, col) {
+  if (board[row][col].fixed && board[row][col].value) {
+    // Permite selecionar fixa pra navegação, mas não edita
+  }
+  if (selectedRow >= 0 && selectedCol >= 0) {
+    const prev = boardEl.children[selectedRow * BOARD_SIZE + selectedCol];
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedRow = row;
+  selectedCol = col;
+  const curr = boardEl.children[row * BOARD_SIZE + col];
+  if (curr) curr.classList.add('selected');
+  hideMessage();
+}
+
+// ===================== INPUT =====================
+function placeNumber(n) {
+  if (selectedRow < 0 || selectedCol < 0) {
+    showMessage('Clique em uma célula primeiro', 'info');
+    return;
+  }
+  const cell = board[selectedRow][selectedCol];
+  if (cell.fixed) {
+    showMessage('Célula fixa — não pode ser alterada', 'error');
+    return;
+  }
+  if (n === 0) {
+    cell.value = null;
+  } else {
+    cell.value = n;
+  }
+  updateCellDOM(selectedRow, selectedCol);
+  updateStatus();
+  // Move cursor to next cell after placing
+  if (n > 0) {
+    moveToNextCell();
+  }
+}
+
+function moveToNextCell() {
+  let r = selectedRow, c = selectedCol;
+  // Try right, then down, then wrap
+  while (true) {
+    c++;
+    if (c >= BOARD_SIZE) { c = 0; r++; }
+    if (r >= BOARD_SIZE) { r = 0; c = 0; }
+    if (r === selectedRow && c === selectedCol) break; // full loop
+    if (!board[r][c].fixed) {
+      selectCell(r, c);
+      return;
+    }
+  }
+}
+
+// ===================== NAVEGAÇÃO POR TECLADO =====================
+document.addEventListener('keydown', (e) => {
+  if (e.key >= '1' && e.key <= '9') {
+    placeNumber(parseInt(e.key));
+    return;
+  }
+  if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+    placeNumber(0);
+    return;
+  }
+  if (selectedRow < 0 || selectedCol < 0) return;
+
+  let r = selectedRow, c = selectedCol;
+  switch (e.key) {
+    case 'ArrowUp':    r = Math.max(0, r - 1); break;
+    case 'ArrowDown':  r = Math.min(8, r + 1); break;
+    case 'ArrowLeft':  c = Math.max(0, c - 1); break;
+    case 'ArrowRight': c = Math.min(8, c + 1); break;
+    default: return;
+  }
+  e.preventDefault();
+  selectCell(r, c);
+});
+
+// ===================== VALIDAÇÃO =====================
+function hasDuplicates(values) {
+  const filled = values.filter(v => v !== null && v !== 0 && v !== undefined);
+  return filled.length !== new Set(filled).size;
+}
+
+function getRowValues(row) {
+  return board[row].map(c => c.value || null);
+}
+
+function getColValues(col) {
+  const vals = [];
+  for (let r = 0; r < BOARD_SIZE; r++) vals.push(board[r][col].value || null);
+  return vals;
+}
+
+function getRegionValues(row, col) {
+  const r0 = Math.floor(row / REGION_SIZE) * REGION_SIZE;
+  const c0 = Math.floor(col / REGION_SIZE) * REGION_SIZE;
+  const vals = [];
+  for (let r = r0; r < r0 + REGION_SIZE; r++)
+    for (let c = c0; c < c0 + REGION_SIZE; c++)
+      vals.push(board[r][c].value || null);
+  return vals;
+}
+
+function getErrorCells() {
+  const errors = new Set();
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    // Check rows
+    const rowVals = board[i].map((c, ci) => ({ v: c.value, ci }));
+    const rowFilled = rowVals.filter(c => c.v !== null && c.v !== 0);
+    const rowSeen = {};
+    for (const c of rowFilled) {
+      if (rowSeen[c.v]) { errors.add(i + ',' + rowSeen[c.v]); errors.add(i + ',' + c.ci); }
+      rowSeen[c.v] = c.ci;
+    }
+    // Check cols
+    const colFilled = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      const v = board[r][i].value;
+      if (v !== null && v !== 0) colFilled.push({ v, r });
+    }
+    const colSeen = {};
+    for (const c of colFilled) {
+      if (colSeen[c.v]) { errors.add(colSeen[c.v] + ',' + i); errors.add(c.r + ',' + i); }
+      colSeen[c.v] = c.r;
+    }
+  }
+  // Check regions
+  for (let r = 0; r < BOARD_SIZE; r += REGION_SIZE) {
+    for (let c = 0; c < BOARD_SIZE; c += REGION_SIZE) {
+      const cells = [];
+      for (let dr = 0; dr < REGION_SIZE; dr++)
+        for (let dc = 0; dc < REGION_SIZE; dc++) {
+          const v = board[r+dr][c+dc].value;
+          if (v !== null && v !== 0) cells.push({ v, r: r+dr, c: c+dc });
+        }
+      const seen = {};
+      for (const cell of cells) {
+        if (seen[cell.v]) { errors.add(cell.r + ',' + cell.c); errors.add(seen[cell.v].r + ',' + seen[cell.v].c); }
+        seen[cell.v] = cell;
+      }
+    }
+  }
+  return errors;
+}
+
+function highlightErrors() {
+  // Clear all errors
+  for (let i = 0; i < boardEl.children.length; i++) {
+    boardEl.children[i].classList.remove('error');
+  }
+  const errors = getErrorCells();
+  for (const key of errors) {
+    const [r, c] = key.split(',').map(Number);
+    const idx = r * BOARD_SIZE + c;
+    const el = boardEl.children[idx];
+    if (el && !board[r][c].fixed) el.classList.add('error');
+  }
+}
+
+// ===================== STATUS =====================
+function getStatus() {
+  let filledCount = 0;
+  let anyUserFilled = false;
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (board[r][c].value !== null && board[r][c].value !== 0) {
+        filledCount++;
+        if (!board[r][c].fixed) anyUserFilled = true;
+      }
+    }
+  }
+  if (!anyUserFilled) return 'NON_STARTED';
+  if (filledCount === 81) return 'COMPLETE';
+  return 'INCOMPLETE';
+}
+
+function updateStatus() {
+  const status = getStatus();
+  statusText.textContent = { NON_STARTED: 'não iniciado', INCOMPLETE: 'incompleto', COMPLETE: 'completo' }[status];
+  statusText.className = 'status ' + status.toLowerCase();
+
+  const errors = getErrorCells();
+  if (errors.size > 0) {
+    errorsBadge.textContent = errors.size + ' erro' + (errors.size > 1 ? 's' : '');
+    errorsBadge.classList.add('show');
+  } else {
+    errorsBadge.classList.remove('show');
+  }
+  highlightErrors();
+  return status;
+}
+
+// ===================== AÇÕES =====================
+function hideMessage() {
+  messageEl.classList.remove('show', 'error', 'success', 'info');
+  messageEl.textContent = '';
+}
+
+function showMessage(text, type = 'info') {
+  messageEl.textContent = text;
+  messageEl.className = 'message show ' + type;
+  // Auto-hide after 4s for non-error messages
+  if (type !== 'error') {
+    setTimeout(hideMessage, 4000);
+  }
+}
+
+function checkStatus() {
+  const status = getStatus();
+  const errors = getErrorCells();
+  let msg = '';
+
+  if (status === 'NON_STARTED') {
+    msg = '⚠️ Jogo não iniciado. Preencha uma célula para começar.';
+  } else if (errors.size > 0) {
+    const cells = [...errors].map(k => { const [r,c] = k.split(','); return `(${+c+1},${+r+1})`; });
+    msg = '❌ ' + errors.size + ' erro(s) encontrado(s) em: ' + cells.join(', ');
+  } else if (status === 'COMPLETE') {
+    msg = '🎉 Parabéns! Sudoku completo e sem erros!';
+  } else {
+    msg = '✅ Nenhum erro encontrado. Continue preenchendo!';
+  }
+  showMessage(msg, errors.size > 0 ? 'error' : status === 'COMPLETE' ? 'success' : 'info');
+}
+
+function finishGame() {
+  const status = getStatus();
+  const errors = getErrorCells();
+
+  if (status === 'NON_STARTED') {
+    showMessage('⚠️ O jogo nem foi iniciado ainda!', 'error');
+    return;
+  }
+  if (status !== 'COMPLETE') {
+    showMessage('❌ Ainda existem células vazias. Complete todas as 81.', 'error');
+    return;
+  }
+  if (errors.size > 0) {
+    showMessage('❌ Há ' + errors.size + ' erro(s). Corrija antes de finalizar.', 'error');
+    return;
+  }
+  showMessage('🎉🎉 PARABÉNS! Sudoku finalizado com sucesso! 🎉🎉', 'success');
+}
+
+function resetBoard() {
+  for (let r = 0; r < BOARD_SIZE; r++)
+    for (let c = 0; c < BOARD_SIZE; c++)
+      if (!board[r][c].fixed) board[r][c].value = null;
+  renderBoard();
+  updateStatus();
+  showMessage('⟲ Células editáveis foram limpas.', 'info');
+}
+
+function newGame() {
+  initBoard();
+  selectedRow = -1; selectedCol = -1;
+  renderBoard();
+  updateStatus();
+  showMessage('🔄 Novo jogo iniciado!', 'info');
+}
+
+// ===================== EVENTOS DOS BOTÕES =====================
+document.querySelectorAll('.num-pad button').forEach(btn => {
+  btn.addEventListener('click', () => placeNumber(parseInt(btn.dataset.n)));
+});
+
+document.getElementById('btnCheck').addEventListener('click', checkStatus);
+document.getElementById('btnFinish').addEventListener('click', finishGame);
+document.getElementById('btnReset').addEventListener('click', resetBoard);
+document.getElementById('btnNew').addEventListener('click', newGame);
+
+// ===================== START =====================
+initBoard();
+renderBoard();
+updateStatus();
+</script>
+</body>
+</html>
