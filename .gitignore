@@ -1,11 +1,26 @@
-### IDE ###
+# --- Maven ---
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+# --- IDE ---
 .idea/
-.vscode/
 *.iml
+.vscode/
+*.swp
+*.swo
+*~
 
-### Java (build) ###
-out/
-*.class
-
-### OS ###
+# --- OS ---
 .DS_Store
+Thumbs.db
+
+# --- Compiled (legado) ---
+out/
+
+# --- Maven Wrapper (opcional) ---
+.mvn/
+mvnw
+mvnw.cmd

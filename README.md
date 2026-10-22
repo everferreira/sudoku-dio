@@ -1,5 +1,10 @@
 # Sudoku — Formação Java (DIO)
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/everferreira/sudoku-dio)
+[![CI — Build & Test](https://github.com/everferreira/sudoku-dio/actions/workflows/ci.yml/badge.svg)](https://github.com/everferreira/sudoku-dio/actions/workflows/ci.yml)
+![Java](https://img.shields.io/badge/Java-17%2B-%23ED8B00?logo=openjdk&logoColor=white)
+[![Maven](https://img.shields.io/badge/Maven-3.9%2B-C71A36?logo=apachemaven)](https://maven.apache.org/)
+
 Jogo de Sudoku 9x9 desenvolvido no desafio da **Formação Java** da [DIO](https://www.dio.me),
 com **duas versões** no mesmo repositório:
 
@@ -14,49 +19,82 @@ conferir o valor contra uma resposta esperada.
 
 ```
 sudoku/
-├── src/br/com/dio/
-│   ├── Main.java                  # Versão terminal (CLI)
-│   ├── UIMain.java                # Versão com interface gráfica (Swing)
-│   ├── model/                     # Board, Space, GameStatusEnum
-│   ├── service/                   # BoardService (lógica compartilhada) + eventos
-│   ├── ui/                        # Componentes Swing (janela, setores, botões)
-│   └── util/                      # BoardConfig (args) e BoardTemplate (impressão)
+├── pom.xml                        # Build Maven
+├── src/
+│   ├── main/java/br/com/dio/
+│   │   ├── Main.java              # Versão terminal (CLI)
+│   │   ├── UIMain.java            # Versão com interface gráfica (Swing)
+│   │   ├── model/                 # Board, Space, GameStatusEnum
+│   │   ├── service/               # BoardService (lógica compartilhada) + eventos
+│   │   ├── ui/                    # Componentes Swing (janela, setores, botões)
+│   │   └── util/                  # BoardConfig (args) e BoardTemplate (impressão)
+│   └── test/java/br/com/dio/
+│       └── model/BoardTest.java   # Testes unitários (JUnit 5)
+├── .devcontainer/
+│   └── devcontainer.json          # Configuração do GitHub Codespaces
+├── .github/workflows/
+│   └── ci.yml                     # Integração contínua (GitHub Actions)
 ├── scripts/                       # run-cli.sh, run-ui.sh, board-data.txt
-└── out/                           # Classes compiladas (gerado, não versionado)
+└── .gitignore
 ```
 
 ## Requisitos
 
-- JDK 17 ou superior (recomendado: 21 LTS). O projeto compila com `--release 17`.
+- **JDK 17 ou superior** (recomendado: 21 LTS)
+- **Maven 3.9+** (ou use `mvnw` — Maven Wrapper)
 
 ## Como rodar
 
+Com uma linha:
+
 ```bash
-# 1. Versão terminal (tabuleiro clássico da DIO, 33 células fixas)
+# Terminal — tabuleiro clássico da DIO (33 células fixas)
 ./scripts/run-cli.sh
 
-# 2. Versão com interface gráfica (Swing — requer ambiente gráfico)
+# GUI (Swing — requer ambiente gráfico)
 ./scripts/run-ui.sh
 ```
 
-Manual:
+Ou manualmente com Maven:
 
 ```bash
 # Compilar
-javac --release 17 -encoding UTF-8 -d out $(find src -name "*.java" -print)
+mvn compile
 
-# Terminal (sem argumentos → tabuleiro padrão)
-java -cp out br.com.dio.Main
+# Terminal (tabuleiro padrão)
+mvn exec:java -Dexec.mainClass="br.com.dio.Main"
 
-# Terminal (com tabuleiro customizado — formato DIO)
-java -cp out br.com.dio.Main 0,0;4,false 1,0;7,false 2,0;9,true ...
+# Terminal (tabuleiro customizado — formato DIO)
+mvn exec:java -Dexec.mainClass="br.com.dio.Main" \
+  -Dexec.args="0,0;4,false 1,0;7,false 2,0;9,true ..."
 
 # Interface gráfica
-java -cp out br.com.dio.UIMain 0,0;4,false 1,0;7,false 2,0;9,true ...
+mvn exec:java -Dexec.mainClass="br.com.dio.UIMain"
+
+# Rodar testes
+mvn test
 ```
 
 O tabuleiro completo está em [`scripts/board-data.txt`](scripts/board-data.txt)
 (um argumento por linha — basta colar como argumentos).
+
+## Testes
+
+Os testes unitários cobrem:
+
+| Categoria | O que testa |
+|-----------|-------------|
+| **Status** | `NON_STARTED`, `INCOMPLETE`, `COMPLETE` |
+| **Linhas** | Detecção de repetições em cada linha |
+| **Colunas** | Detecção de repetições em cada coluna |
+| **Quadrantes 3x3** | Detecção de repetições em cada região |
+| **Validação geral** | `hasErrors()` e `gameIsFinished()` |
+| **Células fixas** | `changeValue` / `clearValue` bloqueados em células fixas |
+| **Reset** | Limpa células editáveis sem afetar fixas |
+
+```bash
+mvn test
+```
 
 ## Formato dos argumentos
 
@@ -93,10 +131,14 @@ regra é violada.
 
 ## Tecnologias
 
-- Java 17+ (text blocks, switch expressions, streams)
-- Swing (interface gráfica)
-- Padrão Observer (eventos da interface via `NotifierService`)
-- Sem dependências externas — JDK puro
+- **Java 17+** (text blocks, switch expressions, streams)
+- **Maven** (build e gerenciamento de dependências)
+- **JUnit 5** (testes unitários)
+- **Swing** (interface gráfica)
+- **Padrão Observer** (eventos da interface via `NotifierService`)
+- **GitHub Codespaces** (desenvolvimento na nuvem)
+- **GitHub Actions** (integração contínua)
+- Sem dependências externas no runtime — JDK puro
 
 ---
 Projeto baseado no repositório [digitalinnovationone/sudoku](https://github.com/digitalinnovationone/sudoku).
