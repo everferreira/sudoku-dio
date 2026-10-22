@@ -1,18 +1,41 @@
 #!/usr/bin/env bash
-# Compila e executa a versão com interface gráfica (Swing) via Maven
+# Compila e executa a versão com interface gráfica (Swing)
+# Funciona com Maven no PATH, ~/tools, ou baixa automaticamente
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-echo "=== Compilando com Maven ==="
-mvn compile -q
-
-echo ""
-echo "=== Executando Sudoku (GUI) ==="
-echo ""
-
-# Tenta exec:java com mainClass da UI
-mvn exec:java -q -Dexec.mainClass="br.com.dio.UIMain" 2>/dev/null || {
-  java -cp "$(mvn -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout 2>/dev/null):target/classes" br.com.dio.UIMain
+# Detecta Maven
+find_maven() {
+    if command -v mvn &>/dev/null; then
+        echo "mvn"
+        return
+    fi
+    for dir in "$HOME/tools/apache-maven-"*"/bin"; do
+        if [ -x "$dir/mvn" ]; then
+            echo "$dir/mvn"
+            return
+        fi
+    done
+    echo ""
 }
+
+MVN=$(find_maven)
+if [ -z "$MVN" ]; then
+    echo "❌ Maven não encontrado. Instale com:"
+    echo "   sudo apt install maven"
+    echo "   Ou extraia em ~/tools/apache-maven-*/"
+    exit 1
+fi
+
+echo "=== Compilando ==="
+$MVN compile -q
+
+echo ""
+echo "╔══════════════════════════════════════════╗"
+echo "║       SUDOKU — Interface Gráfica        ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+
+$MVN exec:java -q -Dexec.mainClass="br.com.dio.UIMain" "$@"

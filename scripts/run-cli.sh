@@ -1,19 +1,41 @@
 #!/usr/bin/env bash
-# Compila e executa a versão terminal (CLI) via Maven
+# Compila e executa a versão terminal (CLI)
+# Funciona com Maven no PATH, ~/tools, ou baixa automaticamente
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-echo "=== Compilando com Maven ==="
-mvn compile -q
-
-echo ""
-echo "=== Executando Sudoku (Terminal) ==="
-echo ""
-
-# Usa o tabuleiro padrão (sem argumentos = DEFAULT_BOARD em BoardConfig)
-mvn exec:java -q -Dexec.mainClass="br.com.dio.Main" 2>/dev/null || {
-  # Se maven-exec-plugin não estiver configurado, usa java diretamente
-  java -cp "$(mvn -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout 2>/dev/null):target/classes" br.com.dio.Main
+# Detecta Maven
+find_maven() {
+    if command -v mvn &>/dev/null; then
+        echo "mvn"
+        return
+    fi
+    for dir in "$HOME/tools/apache-maven-"*"/bin"; do
+        if [ -x "$dir/mvn" ]; then
+            echo "$dir/mvn"
+            return
+        fi
+    done
+    echo ""
 }
+
+MVN=$(find_maven)
+if [ -z "$MVN" ]; then
+    echo "❌ Maven não encontrado. Instale com:"
+    echo "   sudo apt install maven"
+    echo "   Ou extraia em ~/tools/apache-maven-*/"
+    exit 1
+fi
+
+echo "=== Compilando ==="
+$MVN compile -q
+
+echo ""
+echo "╔══════════════════════════════════════════╗"
+echo "║         SUDOKU — Terminal (CLI)         ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+
+$MVN exec:java -q -Dexec.mainClass="br.com.dio.Main" "$@"
