@@ -208,7 +208,7 @@ function initBoard() {
     for (let col = 0; col < BOARD_SIZE; col++) {
       const key = col + ',' + row;
       const cell = DEFAULT_PUZZLE[key];
-      board[row][col] = { value: cell.v, fixed: cell.f };
+      board[row][col] = { value: cell.f ? cell.v : null, fixed: cell.f };
     }
   }
 }
