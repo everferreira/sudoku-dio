@@ -1,0 +1,11 @@
+### IDE ###
+.idea/
+.vscode/
+*.iml
+
+### Java (build) ###
+out/
+*.class
+
+### OS ###
+.DS_Store
